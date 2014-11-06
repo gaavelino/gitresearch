@@ -56,10 +56,10 @@ public class GitHubUtilTest extends AbstractTest {
         logger.info("tokens = " + tokens);
 
         HashMap<String, String> params = new HashMap<String, String>();
-//        params.put("language", "java");
-//        params.put("user", "gavelino");
+        params.put("language", "java");
+        params.put("user", "gavelino");
 
-        params.put("repo", "elasticsearch/elasticsearch");
+//        params.put("repo", "elasticsearch/elasticsearch");
 
         logger.info("params = " + params);
 
