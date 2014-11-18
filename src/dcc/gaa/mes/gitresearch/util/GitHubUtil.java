@@ -27,9 +27,12 @@ import com.google.gson.JsonParser;
 
 import dcc.gaa.mes.gitresearch.GitHubService;
 import dcc.gaa.mes.gitresearch.MyGitHubClient;
+import dcc.gaa.mes.gitresearch.GitHubService.RepoInfo;
 import dcc.gaa.mes.gitresearch.dao.RepositoryDAO;
 import dcc.gaa.mes.gitresearch.dao.ResearchDAO;
 import dcc.gaa.mes.gitresearch.dao.UserDAO;
+import dcc.gaa.mes.gitresearch.model.GitComment;
+import dcc.gaa.mes.gitresearch.model.GitCommitComment;
 import dcc.gaa.mes.gitresearch.model.GitCommitFile;
 import dcc.gaa.mes.gitresearch.model.GitCommitStats;
 import dcc.gaa.mes.gitresearch.model.GitIssue;
@@ -58,16 +61,22 @@ public class GitHubUtil {
 		do {
 			repositories = gitHubservice.searchRepositories(keywords, page, page++);
 			for (int i = 0; i < repositories.size(); i++) {
-				GitRepository repo = repositories.get(i);
-				List<GitIssue> issues = gitHubservice.getAllIssues(repo);
-				List<GitPullRequest> pullRequests =  gitHubservice.getPullRequests(repo);
-				for (GitPullRequest gitPullRequest : pullRequests) {
-					for (GitIssue gitIssue : issues) {
-						if (gitIssue.getNumber() == gitPullRequest.getNumber())
-							gitIssue.setPullRequest(gitPullRequest);
-					}
-				}
-				repo.setRepositoryIssues(issues);
+//				GitRepository repo = repositories.get(i);
+//				List<GitIssue> issues = gitHubservice.getAllIssues(repo);
+//				List<GitPullRequest> pullRequests =  gitHubservice.getPullRequests(repo);
+//				for (GitPullRequest gitPullRequest : pullRequests) {
+//					for (GitIssue gitIssue : issues) {
+//						if (gitIssue.getNumber() == gitPullRequest.getNumber()){
+//							gitIssue.setPullRequest(gitPullRequest);
+////							for (GitComment comment : gitIssue.getGitComments()) {
+////								GitCommitComment commitComment = new GitCommitComment();
+////								gitPullRequest.setGitComments(commitComment);
+////							}
+//						}
+//						
+//					}
+//				}
+//				repo.setRepositoryIssues(issues);
 			}
 		} while (repositories.size() == 100);
 		
@@ -78,7 +87,17 @@ public class GitHubUtil {
 		new ResearchDAO().persist(research);
 		logger.debug("Repositories persisted");
 	}
-
+	
+	public static void printRepositoryInfo(Set<String> tokens, HashMap<String, String> keywords) throws IOException {
+		logger.trace("GitHubUtil.searchRepositories(Set, HashMap)");
+		
+		GitHubService gitHubservice = new GitHubService(new MyGitHubClient(tokens));
+		
+		
+		
+		gitHubservice.printRepositoryInfo(tokens, keywords);
+	}
+	
 	public static final Date getResetTime(String token) throws IOException {
 		logger.trace("GitHubUtil.getResetTime(String)");
 		

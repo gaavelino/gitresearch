@@ -56,17 +56,19 @@ public class GitHubUtilTest extends AbstractTest {
         logger.info("tokens = " + tokens);
 
         HashMap<String, String> params = new HashMap<String, String>();
-        params.put("language", "java");
-        params.put("user", "gavelino");
+//        params.put("language", "java");
+//        params.put("user", "gavelino");
 
-//        params.put("repo", "elasticsearch/elasticsearch");
+//        params.put("repo", "junit-team/junit");
+        params.put("repo", "elasticsearch/elasticsearch");
+//        params.put("repo", "gavelino/gitresearch");
 
         logger.info("params = " + params);
 
         try {
             GitHubUtil.searchAndInsert(tokens, params);
             logger.info("The process was finished without problems");
-        } catch (IOException e) {
+        } catch (IOException e) {	
             logger.error(e.getMessage(), e);
             fail(e.getMessage());
         }

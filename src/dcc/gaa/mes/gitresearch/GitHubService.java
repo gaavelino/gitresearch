@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.eclipse.egit.github.core.Comment;
@@ -22,6 +23,7 @@ import org.eclipse.egit.github.core.service.CommitService;
 import org.eclipse.egit.github.core.service.IssueService;
 import org.eclipse.egit.github.core.service.PullRequestService;
 import org.eclipse.egit.github.core.service.RepositoryService;
+import org.eclipse.egit.github.core.service.UserService;
 
 import dcc.gaa.mes.gitresearch.model.GitComment;
 import dcc.gaa.mes.gitresearch.model.GitCommitComment;
@@ -70,6 +72,13 @@ public class GitHubService {
 //		return issueService;
 		return new IssueService(myClient);
 	}
+	private UserService getUserService(){
+//		if (this.issueService == null || this.getClient().getRemainingRequests()<1){
+//			issueService = new IssueService(this.getClient());
+//		}
+//		return issueService;
+		return new UserService(myClient);
+	}
 	
 	private PullRequestService getPullRequestService(){
 		return new PullRequestService(myClient);
@@ -100,12 +109,25 @@ public class GitHubService {
 					myRepCommit.add(new GitRepositoryCommit(repositoryCommit));
 				}
 				searchRep.setRepositoryCommits(myRepCommit);
-				repositories.add(searchRep);				
+				repositories.add(searchRep);		
+				printRepoInfo(searchRepository);
 			}
 
 		} while (searchRepositories.size() > 0 && initPage <= endPage);
 
 		return repositories;
+	}
+
+	private void printRepoInfo(SearchRepository searchRepository) throws IOException {
+		Map<String, String> issueFilter= new HashMap<String, String>();
+		issueFilter.put("state", "all");
+		int nIssues =  getIssueService().getIssues(searchRepository,issueFilter).size();
+		int nCommits = getCommitService().getCommits(searchRepository).size();		
+		int nUsers = getRepositoryService().getContributors(searchRepository,false).size();
+		String web = searchRepository.getHomepage();
+		String gitUrl = searchRepository.getUrl();
+		System.out.println(searchRepository.getName() + ", " + nUsers  + ", " +  nIssues  + ", " + nCommits  + ", " + gitUrl + ", " + web );
+		
 	}
 
 	public List<GitIssue> getIssues(Map<String, String> issueFilter, GitRepository gitRepository) throws IOException {
@@ -187,6 +209,54 @@ public class GitHubService {
 		Map<String, String> issueFilter= new HashMap<String, String>();
 		issueFilter.put("state", "all");
 		return getIssues(issueFilter, gitRepository);
+	}
+	
+	
+	public class RepoInfo{
+		String name;
+		int nStars;
+		int nUsers;
+		int nIssues;
+		int nCommit;
+		
+		public RepoInfo(String name, int nsStars, int nUsers, int nIssues, int nCommit) {
+			super();
+			this.name = name;
+			this.nStars = nsStars;
+			this.nUsers = nUsers;
+			this.nIssues = nIssues;
+			this.nCommit = nCommit;
+		}
+		
+		@Override
+		public String toString() {
+			return "Repositorio: "+name +
+//					"\nNumero de Estrelas: "+nStars+
+					"\nNumero de Usuários: "+nUsers+
+					"\nNumero de Issues: "+nIssues+
+					"\nNumero de Commits: "+nCommit;
+		}
+	}
+	
+	public void printRepositoryInfo(Set<String> tokens, HashMap<String, String> keywords) throws IOException{
+		int page = 1;
+		List<GitRepository> repositories;
+		Map<String, String> issueFilter= new HashMap<String, String>();
+
+		repositories = searchRepositories(keywords, page, page++);
+		for (int i = 0; i < repositories.size(); i++) {
+			GitRepository repo = repositories.get(i);
+
+			SearchRepository repository = GitHubUtil.createFakeSearchRepository(repo);
+
+			issueFilter.put("state", "all");
+			
+			int nIssues =  getIssueService().getIssues(repository,issueFilter).size();
+			int nCommits = getCommitService().getCommits(repository).size();
+			
+			int nUsers = getRepositoryService().getContributors(repository,false).size();
+		}
+			
 	}
 //	public GitHubClient getClient() {
 //		if (client.getRemainingRequests()==-1)

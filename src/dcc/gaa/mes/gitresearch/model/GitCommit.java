@@ -9,6 +9,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 
@@ -33,6 +34,7 @@ public class GitCommit implements Serializable {
 	@OneToMany(cascade = { CascadeType.REFRESH })
 	private List<GitCommit> parents;
 
+	@Lob
 	private String message;
 
 	private String sha;

@@ -1,0 +1,188 @@
+package dcc.gaa.mes.prototype;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.swing.JFrame;
+import javax.swing.JScrollPane;
+
+import br.ufmg.aserg.topicviewer.gui.distribution.DistributionMap;
+import br.ufmg.aserg.topicviewer.gui.distribution.DistributionMapPanel;
+import br.ufmg.aserg.topicviewer.util.UnsufficientNumberOfColorsException;
+
+public class Main {
+	 // JDBC driver name and database URL
+	   static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
+//	   static final String DB_URL = "jdbc:mysql://localhost:3306/gitresearch";
+	   static final String DB_URL = "jdbc:mysql://localhost:3306/gitresearchtest";
+//	   static final String DB_URL = "jdbc:mysql://localhost:3306/gitelasticsearch";
+
+	   //  Database credentials
+	   static final String USER = "git";
+	   static final String PASS = "git";
+	   
+	public static void main(String[] args) {
+		List<CommitFile> cFiles = getCommitFiles();
+
+		Rank rank = new Rank(cFiles, "gitelasticsearch");
+		
+		for (UserFileRank userFile : rank.getCompleteRank()) {
+			System.out.println(userFile);
+		}
+		System.out.println("\n------------------------------\n");
+		for (String projectName : Util.getProjectNames()) {
+			System.out.println("Projeto:  "+projectName);
+			for (String user : Util.getAllUsers(projectName)) {
+//				System.out.println("user = " + user);
+				printUserFiles(rank, user);
+			}
+		}
+		distributionMap(getMap(rank));
+	}
+	
+	
+	
+	private static Map<String, Set<String>> getMap(Rank rank){
+		Map<String, Set<String>> map = new HashMap<String, Set<String>>();
+		for (UserFileRank userFile : rank.getOnlyJavaFilesRank()) {
+			if (!map.containsKey(userFile.getUser()))
+				map.put(userFile.getUser(), new HashSet<String>());
+			map.get(userFile.getUser()).add(userFile.getFilename());
+		}
+		return map;
+	}
+	
+	private static void printUserFiles(Rank rank, String user) {
+		for (UserFileRank userFile : rank.getCompleteRank()) {
+			String filename = userFile.getFilename();
+			
+			if (user.equals(userFile.getUser()) && filename.substring(filename.lastIndexOf('.')+1, filename.length()).equals("java")) 
+					System.out.print(filename+",");
+		}
+		System.out.println();
+	}
+	private static List<CommitFile> getCommitFiles() {
+		Connection conn = null;
+		Statement stmt = null;
+		List<CommitFile> cFiles = new ArrayList<CommitFile>();
+		
+		try{
+			//STEP 2: Register JDBC driver
+			Class.forName("com.mysql.jdbc.Driver");
+
+			//STEP 3: Open a connection
+			System.out.println("Connecting to database...");
+			conn = DriverManager.getConnection(DB_URL,USER,PASS);
+
+			//STEP 4: Execute a query
+			System.out.println("Creating statement...");
+			stmt = conn.createStatement();
+			String sql;
+			sql = "SELECT gcuser.DATE, gfile.FILENAME, gfile.STATUS, guser.LOGIN, gfile.ADDITIONS, gfile.DELETIONS, grc.SHA, grc.COMMIT_ID ,gcommit.MESSAGE FROM gitrepositorycommit_gitcommitfile gg "
+					+ "JOIN gitrepositorycommit grc ON (grc.SHA = gg.GitRepositoryCommit_SHA) "
+					+ "JOIN gitcommitfile gfile ON (gfile.ID = gg.files_ID) "
+					+ "JOIN gituser guser ON grc.AUTHOR_ID = guser.ID "
+					+ "JOIN gitcommit gcommit on grc.COMMIT_ID = gcommit.ID "
+					+ "JOIN gitcommituser gcuser on gcommit.AUTHOR_ID = gcuser.ID;";
+//			sql = "SELECT  FILENAME, STATUS FROM gitcommitfile";
+			ResultSet rs = stmt.executeQuery(sql);
+			
+			//STEP 5: Extract data from result set
+			while(rs.next()){
+				//Retrieve by column name
+				String fileName = rs.getString("filename");
+				String status = rs.getString("status");
+				String login = rs.getString("login");
+				int additions  = rs.getInt("additions");
+				int deletions = rs.getInt("deletions");
+				String sha = rs.getString("sha");
+				int commitId  = rs.getInt("commit_id");
+				String message = rs.getString("message");
+				Date date = rs.getDate("date");
+				
+				String simpleFileName = fileName.substring(fileName.lastIndexOf('/')+1,fileName.length());
+				
+				cFiles.add(new CommitFile(date, fileName, Status.getStatus(status), 
+						login, additions, deletions, sha, commitId, message));
+			}
+			//STEP 6: Clean-up environment
+			rs.close();
+			stmt.close();
+			conn.close();
+		}catch(SQLException se){
+			//Handle errors for JDBC
+			se.printStackTrace();
+		}catch(Exception e){
+			//Handle errors for Class.forName
+			e.printStackTrace();
+		}finally{
+			//finally block used to close resources
+			try{
+				if(stmt!=null)
+					stmt.close();
+			}catch(SQLException se2){
+			}// nothing we can do
+			try{
+				if(conn!=null)
+					conn.close();
+			}catch(SQLException se){
+				se.printStackTrace();
+			}//end finally try
+		}//end try
+		return cFiles;
+	}
+	
+	static void distributionMap(Map<String, Set<String>> maps){
+		DistributionMap dm = new DistributionMap("teste");
+		String semanticTopics[][] = new String[maps.size()][];
+		int index = 0;
+		int stCount = 0;
+		for (Set<String> sets : maps.values()) {
+			String sTopics[] = new String[sets.size()];
+			int i =0;
+			for (String name : sets) {
+				name = name.replace(".java", "");
+				name = name.replace("/", ".");
+				String className = getClassName(name);
+				sTopics[i++] = className;
+				dm.put(getPackageName(name), className, index, 0.0);
+			}
+			index++;
+			semanticTopics[stCount++] = sTopics;
+		}
+		try {
+			DistributionMapPanel dmPanel = new DistributionMapPanel(dm,semanticTopics);
+			JFrame frame = new JFrame("DistributionMap - Betweenness Cluster");
+			JScrollPane scrollPane = new JScrollPane(dmPanel);  
+//			scrollPane.setBorder(BorderFactory.createTitledBorder("DistributionMap"));
+			frame.setContentPane(scrollPane);
+			frame.setVisible(true);
+		} catch (UnsufficientNumberOfColorsException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
+	static String getClassName(String id) {
+		// TODO Auto-generated method stub
+		if (id.contains("."))
+			return id.substring(id.lastIndexOf('.')+1);
+		else
+			return id;
+	}
+	static String getPackageName(String id) {
+		if (id.contains("."))
+			return id.substring(0, id.lastIndexOf('.'));
+		else
+			return id;
+	}
+}
