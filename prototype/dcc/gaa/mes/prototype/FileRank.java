@@ -17,7 +17,7 @@ public class FileRank {
 	private UserFileRank best;
 	private boolean needCalculate;
 	private boolean wasRemoved;
-	
+	private UserFileRank fileAuthor;
 	
 	public FileRank(String fileName, List<CommitFile> commits) {
 		super();
@@ -27,7 +27,10 @@ public class FileRank {
 		this.needCalculate = true;
 		this.wasRemoved = false;
 	}
-	
+
+	public String getFileName() {
+		return fileName;
+	}
 	protected void addCommit(CommitFile commit){
 		this.commits.add(commit);
 		this.needCalculate = true;
@@ -38,6 +41,18 @@ public class FileRank {
 		if (wasRemoved)
 			return null;
 		return best;
+	}
+	
+	public UserFileRank getFileAuthor(){
+		if (needCalculate)
+			calculateRank();
+		for (CommitFile commitFile : commits) {
+			if (commitFile.getStatus()==Status.ADDED || commitFile.getStatus()==Status.RENAMED)
+				this.fileAuthor = mapUserRank.get(commitFile.getLogin());
+			else if (commitFile.getStatus()==Status.REMOVED)
+				fileAuthor = null;
+		}
+		return fileAuthor;
 	}
 
 	private void calculateRank() {
@@ -63,6 +78,7 @@ public class FileRank {
 					clear();
 					fileCreateUser = userFile.getUser();
 					userFile.setValue(1.0f);
+					fileAuthor = userFile;
 				}
 				if (commitFile.getStatus() == Status.MODIFIED) {
 					userFile.incValue(0.5f);
@@ -84,9 +100,11 @@ public class FileRank {
 	}
 
 	private void testPrintCommits(List<CommitFile> commits2) {
+		System.out.println();
 		for (CommitFile commitFile : commits2) {
 			System.out.println(commitFile.getDate() + " , " + commitFile.getCommitId() + " , " + commitFile.getFileName() + " , " + commitFile.getStatus());
 		}
+		System.out.println();
 		
 	}
 

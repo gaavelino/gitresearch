@@ -1,5 +1,6 @@
 package dcc.gaa.mes.prototype;
 
+import java.sql.Timestamp;
 import java.util.Date;
 
 public class CommitFile implements Comparable<CommitFile> {
@@ -12,9 +13,9 @@ public class CommitFile implements Comparable<CommitFile> {
 	private String sha;
 	private int commitId;
 	private String message;
-	private Date date;
+	private Timestamp date;
 	
-	public CommitFile(Date date, String fileName, Status status, String login,
+	public CommitFile(Timestamp date, String fileName, Status status, String login,
 			int additions, int deletions, String sha, int commitId,
 			String message) {
 		super();
@@ -103,7 +104,7 @@ public class CommitFile implements Comparable<CommitFile> {
 	public Date getDate() {
 		return date;
 	}
-	public void setDate(Date date) {
+	public void setDate(Timestamp date) {
 		this.date = date;
 	}
 	

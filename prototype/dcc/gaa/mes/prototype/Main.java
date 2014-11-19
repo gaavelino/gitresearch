@@ -5,49 +5,56 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 
+import br.ufmg.aserg.topicviewer.control.distribution.DistributionMapCalculator;
 import br.ufmg.aserg.topicviewer.gui.distribution.DistributionMap;
 import br.ufmg.aserg.topicviewer.gui.distribution.DistributionMapPanel;
 import br.ufmg.aserg.topicviewer.util.UnsufficientNumberOfColorsException;
 
 public class Main {
-	 // JDBC driver name and database URL
-	   static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
-//	   static final String DB_URL = "jdbc:mysql://localhost:3306/gitresearch";
-	   static final String DB_URL = "jdbc:mysql://localhost:3306/gitresearchtest";
-//	   static final String DB_URL = "jdbc:mysql://localhost:3306/gitelasticsearch";
+	// JDBC driver name and database URL
+	static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
+//	static final String DB_URL = "jdbc:mysql://localhost:3306/gitresearch";
+		   static final String DB_URL = "jdbc:mysql://localhost:3306/gitjunit";
+	//	   static final String DB_URL = "jdbc:mysql://localhost:3306/gitelasticsearch";
 
-	   //  Database credentials
-	   static final String USER = "git";
-	   static final String PASS = "git";
-	   
+	//  Database credentials
+	static final String USER = "git";
+	static final String PASS = "git";
+
+	static Set<UserInfoData> usersInfo;
+
 	public static void main(String[] args) {
 		List<CommitFile> cFiles = getCommitFiles();
 
-		Rank rank = new Rank(cFiles, "gitelasticsearch");
-		
-		for (UserFileRank userFile : rank.getCompleteRank()) {
-			System.out.println(userFile);
-		}
-		System.out.println("\n------------------------------\n");
-		for (String projectName : Util.getProjectNames()) {
-			System.out.println("Projeto:  "+projectName);
-			for (String user : Util.getAllUsers(projectName)) {
-//				System.out.println("user = " + user);
-				printUserFiles(rank, user);
-			}
-		}
-		distributionMap(getMap(rank));
+		Rank rank = new Rank(cFiles, "gitresearch");
+//		
+//		for (UserFileRank userFile : rank.getCompleteRank()) {
+//			System.out.println(userFile);
+//		}
+//		System.out.println("\n------------------------------\n");
+//		for (String projectName : Util.getProjectNames()) {
+//			System.out.println("Projeto:  "+projectName);
+//			for (String user : Util.getAllUsers(projectName)) {
+////				System.out.println("user = " + user);
+//				printUserFiles(rank, user);
+//			}
+//		}
+		distributionMap(getAuthorMap(rank), "Author");
+		distributionMap(getMap(rank), "Rank");
+		System.out.println();
 	}
 	
 	
@@ -61,7 +68,15 @@ public class Main {
 		}
 		return map;
 	}
-	
+	private static Map<String, Set<String>> getAuthorMap(Rank rank){
+		Map<String, Set<String>> map = new HashMap<String, Set<String>>();
+		for (UserFileRank userFile : rank.getOnlyJavaFilesRankAuthor()) {
+			if (!map.containsKey(userFile.getUser()))
+				map.put(userFile.getUser(), new HashSet<String>());
+			map.get(userFile.getUser()).add(userFile.getFilename());
+		}
+		return map;
+	}
 	private static void printUserFiles(Rank rank, String user) {
 		for (UserFileRank userFile : rank.getCompleteRank()) {
 			String filename = userFile.getFilename();
@@ -71,6 +86,7 @@ public class Main {
 		}
 		System.out.println();
 	}
+	
 	private static List<CommitFile> getCommitFiles() {
 		Connection conn = null;
 		Statement stmt = null;
@@ -96,7 +112,6 @@ public class Main {
 					+ "JOIN gitcommituser gcuser on gcommit.AUTHOR_ID = gcuser.ID;";
 //			sql = "SELECT  FILENAME, STATUS FROM gitcommitfile";
 			ResultSet rs = stmt.executeQuery(sql);
-			
 			//STEP 5: Extract data from result set
 			while(rs.next()){
 				//Retrieve by column name
@@ -108,11 +123,12 @@ public class Main {
 				String sha = rs.getString("sha");
 				int commitId  = rs.getInt("commit_id");
 				String message = rs.getString("message");
-				Date date = rs.getDate("date");
+//				Date date = rs.getDate("date");
+				Timestamp time = rs.getTimestamp("date");
 				
-				String simpleFileName = fileName.substring(fileName.lastIndexOf('/')+1,fileName.length());
+//				String simpleFileName = fileName.substring(fileName.lastIndexOf('/')+1,fileName.length());
 				
-				cFiles.add(new CommitFile(date, fileName, Status.getStatus(status), 
+				cFiles.add(new CommitFile(time, fileName, Status.getStatus(status), 
 						login, additions, deletions, sha, commitId, message));
 			}
 			//STEP 6: Clean-up environment
@@ -142,15 +158,19 @@ public class Main {
 		return cFiles;
 	}
 	
-	static void distributionMap(Map<String, Set<String>> maps){
-		DistributionMap dm = new DistributionMap("teste");
+	
+	
+	
+	static void distributionMap(Map<String, Set<String>> maps, String mapName){
+		usersInfo = new HashSet<UserInfoData>();
+		DistributionMap dm = new DistributionMap(mapName);
 		String semanticTopics[][] = new String[maps.size()][];
 		int index = 0;
 		int stCount = 0;
-		for (Set<String> sets : maps.values()) {
-			String sTopics[] = new String[sets.size()];
+		for (Entry<String, Set<String>> entry : maps.entrySet()) {
+			String sTopics[] = new String[entry.getValue().size()];
 			int i =0;
-			for (String name : sets) {
+			for (String name : entry.getValue()) {
 				name = name.replace(".java", "");
 				name = name.replace("/", ".");
 				String className = getClassName(name);
@@ -158,20 +178,34 @@ public class Main {
 				dm.put(getPackageName(name), className, index, 0.0);
 			}
 			index++;
+			usersInfo.add(new UserInfoData(entry.getKey(), stCount, entry.getValue()));
 			semanticTopics[stCount++] = sTopics;
+			
 		}
 		try {
+			dm = DistributionMapCalculator.addSemanticClustersMetrics(dm, maps.size());
 			DistributionMapPanel dmPanel = new DistributionMapPanel(dm,semanticTopics);
-			JFrame frame = new JFrame("DistributionMap - Betweenness Cluster");
+			calcDMValues(dm);
+			JFrame frame = new JFrame("DistributionMap - "+mapName);
 			JScrollPane scrollPane = new JScrollPane(dmPanel);  
 //			scrollPane.setBorder(BorderFactory.createTitledBorder("DistributionMap"));
 			frame.setContentPane(scrollPane);
 			frame.setVisible(true);
 		} catch (UnsufficientNumberOfColorsException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 	}
+	
+	private static void calcDMValues(DistributionMap dm) {
+		for (UserInfoData userInfo : usersInfo) {
+			userInfo.setFocus(dm.getFocus(userInfo.getIndex()));
+			userInfo.setSpread(dm.getSpread(userInfo.getIndex()));
+			System.out.println(userInfo.getUserName()+ ","+userInfo.getSpread() + ","+userInfo.getFocus());
+		}
+	}
+
+
+
 	static String getClassName(String id) {
 		// TODO Auto-generated method stub
 		if (id.contains("."))

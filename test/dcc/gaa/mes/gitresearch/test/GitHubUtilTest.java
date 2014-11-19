@@ -60,8 +60,8 @@ public class GitHubUtilTest extends AbstractTest {
 //        params.put("user", "gavelino");
 
 //        params.put("repo", "junit-team/junit");
-        params.put("repo", "elasticsearch/elasticsearch");
-//        params.put("repo", "gavelino/gitresearch");
+//        params.put("repo", "elasticsearch/elasticsearch");
+        params.put("repo", "gavelino/gitresearch");
 
         logger.info("params = " + params);
 

@@ -37,6 +37,27 @@ public class Rank {
 		}
 		return filteredRank;
 	}
+	public List<UserFileRank> getOnlyJavaFilesRankAuthor(){
+		List<UserFileRank> allRank = getCompleteRankAuthor();
+		List<UserFileRank> filteredRank =  new ArrayList<UserFileRank>();
+		for (UserFileRank userFileRank : allRank) {
+			String filename = userFileRank.getFilename();
+			if (filename.substring(filename.lastIndexOf('.')+1, filename.length()).equals("java"))
+				filteredRank.add(userFileRank);
+		}
+		return filteredRank;
+	}
+	public List<UserFileRank> getCompleteRankAuthor(){
+		List<UserFileRank> completeRank = new ArrayList<UserFileRank>();
+		for (FileRank fileRank : mapFileRank.values()) {
+			UserFileRank userFileRank = fileRank.getFileAuthor();
+			if (userFileRank != null){
+				completeRank.add(userFileRank);
+				Util.addUser(userFileRank.getUser(), projectName);
+			}
+		}
+		return completeRank;
+	}
 	
 	public List<UserFileRank> getCompleteRank(){
 		List<UserFileRank> completeRank = new ArrayList<UserFileRank>();
