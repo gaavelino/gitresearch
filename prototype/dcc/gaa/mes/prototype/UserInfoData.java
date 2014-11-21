@@ -43,4 +43,9 @@ public class UserInfoData {
 	public void setSpread(Double spread) {
 		this.spread = spread;
 	}
+
+	public int getnFiles() {
+		return fileNames.size();
+	}
+
 }

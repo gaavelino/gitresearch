@@ -27,7 +27,7 @@ public class Main {
 	// JDBC driver name and database URL
 	static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
 //	static final String DB_URL = "jdbc:mysql://localhost:3306/gitresearch";
-		   static final String DB_URL = "jdbc:mysql://localhost:3306/gitjunit";
+		   static final String DB_URL = "jdbc:mysql://localhost:3306/";
 	//	   static final String DB_URL = "jdbc:mysql://localhost:3306/gitelasticsearch";
 
 	//  Database credentials
@@ -37,10 +37,25 @@ public class Main {
 	static Set<UserInfoData> usersInfo;
 
 	public static void main(String[] args) {
-		List<CommitFile> cFiles = getCommitFiles();
-
-		Rank rank = new Rank(cFiles, "gitresearch");
+		Rank rank;
+		
+//		System.out.println("GitResearch");
+//		rank = new Rank(getCommitFiles("gitresearch"), "gitresearch");		
+//		distributionMap(getMap(rank), "Rank GitResearch");
 //		
+//		System.out.println("\n\nJUnit");
+//		rank = new Rank(getCommitFiles("gitjunit"), "gitjunit");		
+//		distributionMap(getMap(rank), "Rank JUnit");
+		
+		System.out.println("\n\nElasticSearch");
+		rank = new Rank(getCommitFiles("gitelasticsearch"), "gitelasticsearch");		
+		distributionMap(getMap(rank), "Rank ElasticSearch");
+		
+		
+		System.out.println();
+		distributionMap(getAuthorMap(rank), "Author");
+		
+
 //		for (UserFileRank userFile : rank.getCompleteRank()) {
 //			System.out.println(userFile);
 //		}
@@ -52,9 +67,6 @@ public class Main {
 //				printUserFiles(rank, user);
 //			}
 //		}
-		distributionMap(getAuthorMap(rank), "Author");
-		distributionMap(getMap(rank), "Rank");
-		System.out.println();
 	}
 	
 	
@@ -87,7 +99,7 @@ public class Main {
 		System.out.println();
 	}
 	
-	private static List<CommitFile> getCommitFiles() {
+	private static List<CommitFile> getCommitFiles(String database) {
 		Connection conn = null;
 		Statement stmt = null;
 		List<CommitFile> cFiles = new ArrayList<CommitFile>();
@@ -98,26 +110,30 @@ public class Main {
 
 			//STEP 3: Open a connection
 			System.out.println("Connecting to database...");
-			conn = DriverManager.getConnection(DB_URL,USER,PASS);
+			conn = DriverManager.getConnection(DB_URL+database,USER,PASS);
 
 			//STEP 4: Execute a query
 			System.out.println("Creating statement...");
 			stmt = conn.createStatement();
 			String sql;
-			sql = "SELECT gcuser.DATE, gfile.FILENAME, gfile.STATUS, guser.LOGIN, gfile.ADDITIONS, gfile.DELETIONS, grc.SHA, grc.COMMIT_ID ,gcommit.MESSAGE FROM gitrepositorycommit_gitcommitfile gg "
+			sql = "SELECT gcuser.DATE, gfile.FILENAME, gfile.STATUS, gCuser.NAME, gfile.ADDITIONS, gfile.DELETIONS, grc.SHA, grc.COMMIT_ID ,gcommit.MESSAGE FROM gitrepositorycommit_gitcommitfile gg "
 					+ "JOIN gitrepositorycommit grc ON (grc.SHA = gg.GitRepositoryCommit_SHA) "
 					+ "JOIN gitcommitfile gfile ON (gfile.ID = gg.files_ID) "
-					+ "JOIN gituser guser ON grc.AUTHOR_ID = guser.ID "
 					+ "JOIN gitcommit gcommit on grc.COMMIT_ID = gcommit.ID "
 					+ "JOIN gitcommituser gcuser on gcommit.AUTHOR_ID = gcuser.ID;";
-//			sql = "SELECT  FILENAME, STATUS FROM gitcommitfile";
+//			sql = "SELECT gcuser.DATE, gfile.FILENAME, gfile.STATUS, gcuser.NAME, gfile.ADDITIONS, gfile.DELETIONS, grc.SHA, grc.COMMIT_ID ,gcommit.MESSAGE FROM gitrepositorycommit_gitcommitfile gg"
+//					+ "JOIN gitcommitfile gfile ON (gfile.ID = gg.files_ID) "
+//					+ "JOIN gitrepositorycommit grc ON (grc.SHA = gg.GitRepositoryCommit_SHA) "
+//					+ "JOIN gitcommit gcommit on grc.COMMIT_ID = gcommit.ID "
+//					+ "JOIN gitcommituser gcuser on gcommit.AUTHOR_ID = gcuser.ID;";
 			ResultSet rs = stmt.executeQuery(sql);
 			//STEP 5: Extract data from result set
 			while(rs.next()){
 				//Retrieve by column name
 				String fileName = rs.getString("filename");
 				String status = rs.getString("status");
-				String login = rs.getString("login");
+//				String login = rs.getString("login");
+				String login = rs.getString("name");
 				int additions  = rs.getInt("additions");
 				int deletions = rs.getInt("deletions");
 				String sha = rs.getString("sha");
@@ -200,7 +216,7 @@ public class Main {
 		for (UserInfoData userInfo : usersInfo) {
 			userInfo.setFocus(dm.getFocus(userInfo.getIndex()));
 			userInfo.setSpread(dm.getSpread(userInfo.getIndex()));
-			System.out.println(userInfo.getUserName()+ ","+userInfo.getSpread() + ","+userInfo.getFocus());
+			System.out.println(userInfo.getUserName()+ ","+userInfo.getnFiles() + ","+userInfo.getSpread() + ","+userInfo.getFocus());
 		}
 	}
 
