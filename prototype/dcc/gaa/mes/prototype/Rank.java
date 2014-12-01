@@ -2,14 +2,16 @@ package dcc.gaa.mes.prototype;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class Rank {
 	private List<CommitFile> commits;
 	private Map<String, FileRank> mapFileRank;
 	private String projectName;
-	
+	Set<String> packages;
 	public Rank(List<CommitFile> commits, String projectName) {
 		this.commits =  commits;
 		this.projectName = projectName;
@@ -25,6 +27,20 @@ public class Rank {
 			}
 			mapFileRank.get(fileName).addCommit(commitFile);
 		}
+	}
+	
+	public Set<String> getJavaPackages(){
+
+		if (packages == null) {
+			packages = new HashSet<String>();
+			for (String fileName : mapFileRank.keySet()) {
+				if (fileName.substring(fileName.lastIndexOf('.') + 1,
+						fileName.length()).equals("java"))
+					packages.add(fileName.substring(0,
+							fileName.lastIndexOf('/')));
+			}
+		}
+		return packages;
 	}
 	
 	public List<UserFileRank> getOnlyJavaFilesRank(){

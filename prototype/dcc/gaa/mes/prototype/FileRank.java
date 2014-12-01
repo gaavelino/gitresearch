@@ -46,8 +46,13 @@ public class FileRank {
 	public UserFileRank getFileAuthor(){
 		if (needCalculate)
 			calculateRank();
+		boolean flag = true;
 		for (CommitFile commitFile : commits) {
-			if (commitFile.getStatus()==Status.ADDED || commitFile.getStatus()==Status.RENAMED)
+			if (commitFile.getStatus()==Status.ADDED && flag){ 
+				this.fileAuthor = mapUserRank.get(commitFile.getLogin());
+				flag = false;
+			}
+			else if (commitFile.getStatus()==Status.RENAMED)
 				this.fileAuthor = mapUserRank.get(commitFile.getLogin());
 			else if (commitFile.getStatus()==Status.REMOVED)
 				fileAuthor = null;

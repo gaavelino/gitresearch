@@ -10,8 +10,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -38,24 +41,28 @@ public class Main {
 
 	public static void main(String[] args) {
 		Rank rank;
+		String projectName = "gitjunit";
+		System.out.println(projectName);
+		rank = new Rank(getCommitFiles(projectName), projectName);
+//		rank = new Rank(getCommitFiles("gitresearch2", "gitresearch"), "gitresearch");		
+		distributionMap(getMap(rank), "Rank "+projectName);
 		
-//		System.out.println("GitResearch");
-//		rank = new Rank(getCommitFiles("gitresearch"), "gitresearch");		
-//		distributionMap(getMap(rank), "Rank GitResearch");
-//		
 //		System.out.println("\n\nJUnit");
 //		rank = new Rank(getCommitFiles("gitjunit"), "gitjunit");		
 //		distributionMap(getMap(rank), "Rank JUnit");
 		
-		System.out.println("\n\nElasticSearch");
-		rank = new Rank(getCommitFiles("gitelasticsearch"), "gitelasticsearch");		
-		distributionMap(getMap(rank), "Rank ElasticSearch");
+//		System.out.println("\n\nElasticSearch");
+//		rank = new Rank(getCommitFiles("gitelasticsearch"), "gitelasticsearch");		
+//		distributionMap(getMap(rank), "Rank ElasticSearch");
 		
 		
 		System.out.println();
 		distributionMap(getAuthorMap(rank), "Author");
 		
-
+		for (String packageName : rank.getJavaPackages()) {
+			System.out.println(packageName);
+		}
+		System.out.println("total = "+rank.getJavaPackages().size());
 //		for (UserFileRank userFile : rank.getCompleteRank()) {
 //			System.out.println(userFile);
 //		}
@@ -71,9 +78,22 @@ public class Main {
 	
 	
 	
+	private static List<CommitFile> getCommitFiles(String database, String filter) {
+		List<CommitFile> allCommitFiles = getCommitFiles(database);
+		List<CommitFile> filteredCommitFiles = new ArrayList<CommitFile>();
+		for (CommitFile commitFile : allCommitFiles) {
+			if (commitFile.getFileName().contains(filter))
+				filteredCommitFiles.add(commitFile);
+		}
+		return filteredCommitFiles;
+	}
+
+
+
 	private static Map<String, Set<String>> getMap(Rank rank){
 		Map<String, Set<String>> map = new HashMap<String, Set<String>>();
-		for (UserFileRank userFile : rank.getOnlyJavaFilesRank()) {
+		List<UserFileRank> userFiles = rank.getOnlyJavaFilesRank();
+		for (UserFileRank userFile : userFiles) {
 			if (!map.containsKey(userFile.getUser()))
 				map.put(userFile.getUser(), new HashSet<String>());
 			map.get(userFile.getUser()).add(userFile.getFilename());
@@ -82,7 +102,8 @@ public class Main {
 	}
 	private static Map<String, Set<String>> getAuthorMap(Rank rank){
 		Map<String, Set<String>> map = new HashMap<String, Set<String>>();
-		for (UserFileRank userFile : rank.getOnlyJavaFilesRankAuthor()) {
+		List<UserFileRank> userFiles = rank.getOnlyJavaFilesRankAuthor();
+		for (UserFileRank userFile : userFiles) {
 			if (!map.containsKey(userFile.getUser()))
 				map.put(userFile.getUser(), new HashSet<String>());
 			map.get(userFile.getUser()).add(userFile.getFilename());
@@ -116,7 +137,7 @@ public class Main {
 			System.out.println("Creating statement...");
 			stmt = conn.createStatement();
 			String sql;
-			sql = "SELECT gcuser.DATE, gfile.FILENAME, gfile.STATUS, gCuser.NAME, gfile.ADDITIONS, gfile.DELETIONS, grc.SHA, grc.COMMIT_ID ,gcommit.MESSAGE FROM gitrepositorycommit_gitcommitfile gg "
+			sql = "SELECT gcuser.DATE, gfile.FILENAME, gfile.STATUS, gCuser.EMAIL, gfile.ADDITIONS, gfile.DELETIONS, grc.SHA, grc.COMMIT_ID ,gcommit.MESSAGE FROM gitrepositorycommit_gitcommitfile gg "
 					+ "JOIN gitrepositorycommit grc ON (grc.SHA = gg.GitRepositoryCommit_SHA) "
 					+ "JOIN gitcommitfile gfile ON (gfile.ID = gg.files_ID) "
 					+ "JOIN gitcommit gcommit on grc.COMMIT_ID = gcommit.ID "
@@ -132,8 +153,9 @@ public class Main {
 				//Retrieve by column name
 				String fileName = rs.getString("filename");
 				String status = rs.getString("status");
-//				String login = rs.getString("login");
-				String login = rs.getString("name");
+//				String login = rs.getString("name");
+//				String login = rs.getString("email");
+				String login = rs.getString("email").split("@")[0];
 				int additions  = rs.getInt("additions");
 				int deletions = rs.getInt("deletions");
 				String sha = rs.getString("sha");
@@ -143,7 +165,6 @@ public class Main {
 				Timestamp time = rs.getTimestamp("date");
 				
 //				String simpleFileName = fileName.substring(fileName.lastIndexOf('/')+1,fileName.length());
-				
 				cFiles.add(new CommitFile(time, fileName, Status.getStatus(status), 
 						login, additions, deletions, sha, commitId, message));
 			}
@@ -183,7 +204,10 @@ public class Main {
 		String semanticTopics[][] = new String[maps.size()][];
 		int index = 0;
 		int stCount = 0;
-		for (Entry<String, Set<String>> entry : maps.entrySet()) {
+		Queue<Entry<String, Set<String>>> queuedMap = getOrderedMap(maps);
+		while (!queuedMap.isEmpty()){
+			Entry<String, Set<String>> entry = queuedMap.poll();
+//		for (Entry<String, Set<String>> entry : getOrderedMap(maps).entrySet()) {
 			String sTopics[] = new String[entry.getValue().size()];
 			int i =0;
 			for (String name : entry.getValue()) {
@@ -212,6 +236,36 @@ public class Main {
 		}
 	}
 	
+	private static Queue<Entry<String, Set<String>>> getOrderedMap(
+			Map<String, Set<String>> maps) {
+		Map<String, Set<String>> clonedMap =  new HashMap<String, Set<String>>();
+		Queue<Entry<String, Set<String>>> newMap =  new LinkedList<Entry<String, Set<String>>>();
+		for (Entry<String, Set<String>> entry : maps.entrySet()) {
+			clonedMap.put(entry.getKey(), entry.getValue());
+
+		}
+		
+		while (!clonedMap.isEmpty()) {
+			int bigSize = 0;
+			Entry<String, Set<String>> bigEntry =  null;
+			for (Entry<String, Set<String>> entry : clonedMap.entrySet()) {
+				if (entry.getValue().size() > bigSize) {
+					bigSize = entry.getValue().size();
+					bigEntry = entry;
+				}
+
+			}
+			if (bigEntry!=null){
+				newMap.add(bigEntry);
+				clonedMap.remove(bigEntry.getKey());
+			}
+			
+		}
+		return newMap;
+	}
+
+
+
 	private static void calcDMValues(DistributionMap dm) {
 		for (UserInfoData userInfo : usersInfo) {
 			userInfo.setFocus(dm.getFocus(userInfo.getIndex()));

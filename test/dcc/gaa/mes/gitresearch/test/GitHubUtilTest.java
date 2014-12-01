@@ -60,8 +60,8 @@ public class GitHubUtilTest extends AbstractTest {
 //        params.put("user", "gavelino");
 
 //        params.put("repo", "junit-team/junit");
-//        params.put("repo", "elasticsearch/elasticsearch");
-        params.put("repo", "gavelino/gitresearch");
+        params.put("repo", "elasticsearch/elasticsearch");
+//        params.put("repo", "gavelino/gitresearch");
 
         logger.info("params = " + params);
 
@@ -89,20 +89,20 @@ public class GitHubUtilTest extends AbstractTest {
 
         logger.info("The process was finished without problems");
     }
-    
-    @Test
-    public void test4_updateUser() throws IOException {
-        logger.info("Testing GitHubUtil.updateUser(Set<String>, GitUser)");
-        
-        HashSet<String> tokens = new HashSet<String>();
-        Collections.addAll(tokens, this.tokens);
-        
-        logger.debug("Updating all users");
-        for (GitUser gu : new UserDAO().getAll()) {
-            GitHubUtil.updateUser(tokens, gu);
-        }
-        
-        logger.info("The process was finished without problems");
-    }
+//    
+//    @Test
+//    public void test4_updateUser() throws IOException {
+//        logger.info("Testing GitHubUtil.updateUser(Set<String>, GitUser)");
+//        
+//        HashSet<String> tokens = new HashSet<String>();
+//        Collections.addAll(tokens, this.tokens);
+//        
+//        logger.debug("Updating all users");
+//        for (GitUser gu : new UserDAO().getAll()) {
+//            GitHubUtil.updateUser(tokens, gu);
+//        }
+//        
+//        logger.info("The process was finished without problems");
+//    }
 
 }
