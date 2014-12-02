@@ -8,6 +8,8 @@ public class CommitFile implements Comparable<CommitFile> {
 	private String fileName;
 	private Status status;
 	private String login;
+	private String name;
+	private String email;
 	private int additions;
 	private int deletions;
 	private String sha;
@@ -29,9 +31,29 @@ public class CommitFile implements Comparable<CommitFile> {
 		this.commitId = commitId;
 		this.message = message;
 	}
+	
+	
+	public CommitFile(Timestamp date, String fileName, Status status, String login,
+			String name, String email, int additions, int deletions,
+			String sha, int commitId, String message) {
+		super();
+		this.fileName = fileName;
+		this.status = status;
+		this.login = login;
+		this.name = name;
+		this.email = email;
+		this.additions = additions;
+		this.deletions = deletions;
+		this.sha = sha;
+		this.commitId = commitId;
+		this.message = message;
+		this.date = date;
+	}
+
+
 	@Override
 	public String toString() {
-		return date + ", " + fileName + ", " + status + ", " + login + ", " + additions  + ", " + deletions + ", " + sha + ", " + commitId + ", " + message; 
+		return date + ", " + fileName + ", " + status + ", " + login + ", " + name + ", " + email; //+ ", " + additions  + ", " + deletions + ", " + sha + ", " + commitId + ", " + message; 
 	}
 	public String getFileName() {
 		return fileName;
@@ -56,6 +78,26 @@ public class CommitFile implements Comparable<CommitFile> {
 	public void setLogin(String login) {
 		this.login = login;
 	}
+	
+	public String getName() {
+		return name;
+	}
+
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+
+	public String getEmail() {
+		return email;
+	}
+
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
 
 	public int getAdditions() {
 		return additions;
