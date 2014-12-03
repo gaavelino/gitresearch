@@ -41,39 +41,70 @@ public class TestGitHubProjects {
 	static Set<UserInfoData> usersInfo;
 
 	public static void main(String[] args) {
-//		String projectName = "gitjunit";
-		String projectName = "gitelasticsearch";
+		String projectName = "gitjunit";
+//		String projectName = "gitelasticsearch";
 		System.out.println(projectName);
 		List<CommitFile> cFiles = getCommitFiles(projectName);
 		Collections.sort(cFiles);
-		CommitFile firstFile = cFiles.get(0);
+		CommitFile baseFile =  getBaseFile(cFiles,true);
 		CommitFile lastFile = cFiles.get(cFiles.size()-1);
-		long diff = lastFile.getDate().getTime() - firstFile.getDate().getTime();
-		float per = 0.01f;
+		long diff = lastFile.getDate().getTime() - baseFile.getDate().getTime();
+		float per = 0.00f;
 			long diffSeconds = diff / 1000 % 60;
 			long diffMinutes = diff / (60 * 1000) % 60;
 			long diffHours = diff / (60 * 60 * 1000) % 24;
 			long diffDays = diff / (24 * 60 * 60 * 1000);
 		System.out.println(diffDays + " - " + diffHours + " - " + diffMinutes + " - " + diffSeconds);	
+		int ccount=0;
+		for (per = 0.0f; per < 1.0f; per+=0.01) {
+			int countBefore = 0;
+			int countAfter = 0;
+			Date cutDate = new Date(baseFile.getDate().getTime()
+					+ ((long) (diff * per)));
+			long cutDays = ((long) (diff * per)) / (24 * 60 * 60 * 1000);
+			ccount=0;
+			Status status = Status.MODIFIED; 
+			for (CommitFile commitFile : cFiles) {
+				if (commitFile.getDate().compareTo(baseFile.getDate())>=0) {
+					if (commitFile.getDate().compareTo(cutDate) <= 0
+							&& commitFile.getStatus() == status)
+						countBefore++;
+					if (commitFile.getDate().compareTo(cutDate) > 0
+							&& commitFile.getStatus() == status)
+						countAfter++;
+					if (commitFile.getStatus() == status)
+						ccount++;
+				}
 
-		int countBefore = 0;
-		int countAfter = 0;
-		Date cutDate = new Date(firstFile.getDate().getTime()+((long)(diff*per)));
-		long cutDays = ((long)(diff*per)) / (24 * 60 * 60 * 1000);
-		for (CommitFile commitFile : cFiles) {
-			if (commitFile.getDate().compareTo(cutDate)<=0 && commitFile.getStatus()==Status.ADDED)
-				countBefore++;
-
-			if (commitFile.getDate().compareTo(cutDate)>0 && commitFile.getStatus()==Status.ADDED)
-				countAfter++;
-			
-//			System.out.println(commitFile);
+				//			System.out.println(commitFile);
+			}
+//			System.out.println("CutDate = " + cutDate + "(" + cutDays
+//					+ " dias) " + "\nCommitsBefore = " + countBefore
+//					+ "\nCommitsAfter = " + countAfter);
+			System.out.println(per +" , " + cutDays + " , " + countBefore + " , " + countAfter);
+//			System.out.println(countBefore);
 		}
-		System.out.println("CutDate = "+cutDate + "("+cutDays+" dias) "+"\nCommitsBefore = "+countBefore+"\nCommitsAfter = "+countAfter);
+		System.out.println(ccount);
 	}
 	
 	
 	
+	private static CommitFile getBaseFile(List<CommitFile> cFiles, boolean flag) {
+		if (!flag)
+			return cFiles.get(0);
+		else{
+			for (CommitFile commitFile : cFiles) {
+				if (commitFile.getLogin()!=null){
+					System.out.println("First commit with author in:  " + commitFile.getDate());
+					return commitFile;
+				}
+			}
+		}
+		return null;
+	}
+
+
+
 	private static List<CommitFile> getCommitFiles(String database, String filter) {
 		List<CommitFile> allCommitFiles = getCommitFiles(database);
 		List<CommitFile> filteredCommitFiles = new ArrayList<CommitFile>();
